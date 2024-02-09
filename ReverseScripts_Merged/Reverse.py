@@ -1,35 +1,12 @@
 # Reverse scripts used to parse merged.ini automatically and reverse back every single mod in it.
 # (everything is open source if you learn reverse engineering and work hard)
 
-
-# python problem: if you pass a class instance as a Dict's value or put into List
+# python's design problem:
+# if you pass a class's instance as a Dict's value or add into List
 # it will be a reference type instead a new copy one.
 # to fix it we need to manually copy a new one.
 # this is very important since we use classes to abstract type.
 import copy
-
-
-class CommandList:
-    pass
-
-
-class MigotoPresent:
-    ConstantCommandList = []
-
-
-class MigotoKey:
-    EffectCondition = ""
-    Key = ""
-    Type = ""
-    ConstantsDict = {}
-    ConstantCommandList = []
-
-
-class MigotoStructure:
-    # var name and it's possible value eg: {"swapwar":[0,1]}
-    ConstantDict = {}
-    #
-    MigotoKeyList = []
 
 
 class Condition:
@@ -87,30 +64,17 @@ class MergedInI:
                 line = line.replace("\n", "")
                 self.LineList.append(line)
 
-    def parse_ini_structure(self):
-        flag_texture_override = False
-
-        # 需要列出所有可能执行到的路径
-
-        for line in self.LineList:
-            print("Original Line: " + line)
-            if line.startswith("[textureoverride"):
-                print("Detect TextureOverride:")
-
-            if flag_texture_override and line.startswith("$"):
-                print("Detect activate var: ")
-
-
-
     def parse_command_list(self):
+        # 是否处于commandlist部分
         flag_in_commandlist_section = False
+        # 是否处于if部分
         flag_in_if_section = False
-        flag_in_else_section = False
+
         # 用于判断我们在第几层if
-        if_count = 0
+        if_level_count = 0
 
         # 资源替换和条件列表的字典
-        # 每个资源替换可以满足多个条件列表
+        # 每个资源替换可以有多个条件列表
         tmp_resource_replace_list = []
 
         # 这里需要管理一个Condition字典
@@ -123,7 +87,7 @@ class MergedInI:
             # CommandList End
             if line.startswith("[") and line.endswith("]") and flag_in_commandlist_section:
                 flag_in_commandlist_section = False
-                if_count = 0
+                if_level_count = 0
                 print("[End] CommandList Section")
 
                 print(type(tmp_resource_replace_list))
@@ -152,22 +116,22 @@ class MergedInI:
                     print("[End] if section")
                     # end时必须清除当前等级的condition
                     # 等级下降
-                    if_count = if_count - 1
-                    print("[Level Decrease] to " + str(if_count))
+                    if_level_count = if_level_count - 1
+                    print("[Level Decrease] to " + str(if_level_count))
 
                     # end时，必须把当前tmp_condition设为字典中上一个等级的condition
-                    if if_count > 0:
-                        print("Set [tmp_condition] to level " + str(if_count) + "'s condition.")
-                        tmp_condition = condition_dict.get(if_count)
+                    if if_level_count > 0:
+                        print("Set [tmp_condition] to level " + str(if_level_count) + "'s condition.")
+                        tmp_condition = condition_dict.get(if_level_count)
 
                 if line.startswith("if"):
                     flag_in_if_section = True
-                    if_count = if_count + 1
-                    print("[Start] if section, current level: " + str(if_count))
+                    if_level_count = if_level_count + 1
+                    print("[Start] if section, current level: " + str(if_level_count))
                     print("[Generate new Condition]: ")
                     tmp_condition = Condition()
                     tmp_condition.ConditionStr = line[2:len(line)]
-                    tmp_condition.ConditionLevel = if_count
+                    tmp_condition.ConditionLevel = if_level_count
                     tmp_condition.Positive = True
                     tmp_condition.show()
                     condition_dict[tmp_condition.ConditionLevel] = copy.copy(tmp_condition)
@@ -211,7 +175,6 @@ class MergedInI:
                         condition_dict.pop(tmp_condition.ConditionLevel)
                         print("[condition_dict] after remove size: " + str(len(condition_dict)))
 
-
         # 这里因为我们已经结束了，如果没有检测到新的[]，就默认结束CommandList
         if flag_in_commandlist_section:
             print("[End] CommandList Section")
@@ -229,9 +192,6 @@ class MergedInI:
                 # print(len(resource_replace.condition_list))
             print("-----------------------------------------------------------")
 
-
-
-
     def parse_buffer_files(self):
         pass
 
@@ -241,8 +201,15 @@ class MergedInI:
 
 if __name__ == "__main__":
     merged_ini = MergedInI(r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini")
-    # merged_ini.parse_ini_structure()
+    # (1) 先解析CommandList
     merged_ini.parse_command_list()
+    # (2) 再正常解析TextureOverride
+
+    # (3) 判断TextureOverride中的变量预设值是否影响里面的CommandList，并以此更新每个TextureOverride对应的resource_replace列表
+
+    # (4) 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
+
+    # (5) 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
 
     # merged_ini.parse_buffer_files()
     # merged_ini.output_model_files()
