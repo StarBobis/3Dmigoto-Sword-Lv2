@@ -203,13 +203,13 @@ if __name__ == "__main__":
     merged_ini = MergedInI(r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini")
     # (1) 先解析CommandList
     merged_ini.parse_command_list()
-    # (2) 再正常解析TextureOverride
+    # (2) TODO 再正常解析TextureOverride
 
-    # (3) 判断TextureOverride中的变量预设值是否影响里面的CommandList，并以此更新每个TextureOverride对应的resource_replace列表
+    # (3) TODO 判断TextureOverride中的变量预设值是否影响里面的CommandList，并以此更新每个TextureOverride对应的resource_replace列表
 
-    # (4) 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
+    # (4) TODO 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
 
-    # (5) 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
+    # (5) TODO 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
 
     # merged_ini.parse_buffer_files()
     # merged_ini.output_model_files()
