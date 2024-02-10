@@ -1,6 +1,12 @@
 # Python's design problem: All class must have __init__ to initialize their attributes
 # if you don't do it ,when you call ClassName(), it will use the last one created
 # every new () way created will be a reference type which will reference the last one created.
+# see https://docs.python.org/3/reference/datamodel.html#classes
+# Classes are callable. These objects normally act as factories for new instances of themselves,
+# but variations are possible for class types that override __new__().
+# The arguments of the call are passed to __new__() and,
+# in the typical case, to __init__() to initialize the new instance.
+
 
 def print_line_break():
     print("-----------------------------------------------------------------------")
@@ -50,6 +56,44 @@ class TextureOverride:
         self.ActiveCondition = None
         self.CommandList = []
 
-
     ResourceReplaceList = []
     ActiveResourceReplaceList = []
+
+
+class CycleKey:
+    Key = ""
+    VarName = ""
+    VarValues = []
+
+    def __init__(self):
+        self.Key = ""
+        self.VarName = ""
+        self.VarValues = []
+
+    def show(self):
+        print("[Key]: " + self.Key)
+        print("[VarName]: " + self.VarName)
+        print("[VarValues]: " + str(self.VarValues))
+
+
+class Resource:
+    Name = ""
+    Type = ""
+    Format = ""
+    Stride = ""
+    FileName = ""
+
+    def __init__(self):
+        self.Name = ""
+        self.Type = ""
+        self.Format = ""
+        self.Stride = ""
+        self.FileName = ""
+
+    def show(self):
+        print("[Name]: " + self.Name)
+        print("[Type]: " + self.Type)
+        print("[Format]: " + self.Format)
+        print("[Stride]: " + self.Stride)
+        print("[FileName]: " + self.FileName)
+

@@ -1,5 +1,11 @@
-# Reverse scripts used to parse merged.ini automatically and reverse back every single mod in it.
-# (everything is open source if you learn reverse engineering and work hard)
+# Reverse scripts used to parse merged.ini automatically and reverse back every single mod in it to .ib and .vb format.
+
+# Before you start to read the code you should know:
+# everything is open source if you learn reverse engineering and work hard,
+# it's simple but with a lot of annoying data structure.
+# but any complicated or hard thing in the world is combined with the simplest minimum single data structure
+# so there is nothing difficult if you keep learn them one by one, work hard and work smart is the only way to success.
+# By: NicoMico.
 
 from ReverseScripts_Merged.Configs import *
 
@@ -20,6 +26,10 @@ class MergedInI:
     CommandListResourceReplaceDict = {}
 
     TextureOverrideList = [TextureOverride()]
+
+    CycleKeyList = [CycleKey()]
+
+    ResourceList = [Resource()]
 
     def __init__(self, file_path):
         self.FilePath = file_path
@@ -83,17 +93,22 @@ class MergedInI:
                 if line.startswith("endif"):
                     # 只有在第一层时遇到了endif才能退出if模式
                     flag_in_if_section = False
-                    flag_in_else_section = False
                     print("[End] if section")
                     # end时必须清除当前等级的condition
                     # 等级下降
                     if_level_count = if_level_count - 1
                     print("[Level Decrease] to " + str(if_level_count))
 
+                    # 移除当前层级的condition
+                    print("Remove current level condition:" + tmp_condition.ConditionStr + " from [condition_dict]")
+                    condition_dict.pop(tmp_condition.ConditionLevel)
+                    print("[condition_dict] after remove size: " + str(len(condition_dict)))
+
                     # end时，必须把当前tmp_condition设为字典中上一个等级的condition
                     if if_level_count > 0:
                         print("Set [tmp_condition] to level " + str(if_level_count) + "'s condition.")
                         tmp_condition = condition_dict.get(if_level_count)
+
 
                 if line.startswith("if"):
                     flag_in_if_section = True
@@ -107,11 +122,24 @@ class MergedInI:
                     tmp_condition.show()
                     condition_dict[tmp_condition.ConditionLevel] = copy.copy(tmp_condition)
                     print("Add it into Condition Dict!")
+                    print_line_break()
+
+                # 处理else if模式
+                if line.startswith("elseif"):
+                    print("[Detect] else if section.")
+                    print("[Generate new Condition]: ")
+                    tmp_condition = Condition()
+                    tmp_condition.ConditionStr = line[2:len(line)]
+                    tmp_condition.ConditionLevel = if_level_count
+                    tmp_condition.Positive = True
+                    tmp_condition.show()
+                    condition_dict[tmp_condition.ConditionLevel] = copy.copy(tmp_condition)
+                    print("Add it into Condition Dict!")
+                    print_line_break()
 
                 # 需要额外判断是否处于else模式
-                if line.startswith("else"):
+                if line.startswith("else") and not line.startswith("elseif"):
                     tmp_condition.Positive = False
-                    flag_in_else_section = True
                     print("[Detect] else section.")
                     print("Change current level's condition's positive to False and add it into Condition dict")
                     tmp_condition.show()
@@ -140,11 +168,6 @@ class MergedInI:
                         print("Add it into [tmp_resource_replace_list]")
                         tmp_resource_replace_list.append(copy.copy(tmp_resource_replace))
                         # tmp_resource_replace_list[0].condition_list[0].show() 到这里仍然是正常的
-
-                        # 然后移除
-                        print("Remove current level condition:" + tmp_condition.ConditionStr + " from [condition_dict]")
-                        condition_dict.pop(tmp_condition.ConditionLevel)
-                        print("[condition_dict] after remove size: " + str(len(condition_dict)))
 
         # 这里因为我们已经结束了，如果没有检测到新的[]，就默认结束CommandList
         if flag_in_commandlist_section:
@@ -239,7 +262,7 @@ class MergedInI:
         print("[Match resource replace over]")
         print_line_break()
 
-    def parse_active_resource_replace(self):
+    def process_active_resource_replace(self):
         print("[Start to active resource replace by active condition]")
         for texture_override in self.TextureOverrideList:
             if texture_override.ActiveCondition != "" and texture_override.ActiveCondition is not None:
@@ -309,22 +332,103 @@ class MergedInI:
                 texture_override.ActiveResourceReplaceList = texture_override.ResourceReplaceList
 
         print_line_break()
-        print("Show test result: ")
-        for texture_override in self.TextureOverrideList:
-            if texture_override.Name == "textureoverrideposition":
-                for resource_replace in texture_override.ActiveResourceReplaceList:
-                    resource_replace.show()
-                print(len(texture_override.ActiveResourceReplaceList))
+        # don't uncomment these annoying code unless you are testing
+        # print("Show test result: ")
+        # for texture_override in self.TextureOverrideList:
+        #     if texture_override.Name == "textureoverridenahidaposition":
+        #         for resource_replace in texture_override.ActiveResourceReplaceList:
+        #             resource_replace.show()
+        #         print(len(texture_override.ActiveResourceReplaceList))
+
+    def parse_key_variables(self):
+        print_line_break()
+        is_in_key_section = False
+        self.CycleKeyList = []
+        tmp_cycle_key = CycleKey()
+
+        for line in self.LineList:
+            if line.startswith("[") and line.endswith("]") and is_in_key_section:
+                is_in_key_section = False
+                print("[End] key section")
+                self.CycleKeyList.append(copy.copy(tmp_cycle_key))
+                tmp_cycle_key = CycleKey()
+
+            if line.startswith("[key") and not is_in_key_section:
+                is_in_key_section = True
+                print("[Start] key section")
+
+            if is_in_key_section:
+                if line.startswith("key="):
+                    tmp_cycle_key.Key = line[4:len(line)]
+                    print("[Detect] key: " + tmp_cycle_key.Key)
+
+                if line.startswith("$") and line.find("=") != -1 and line.find(",") != -1:
+                    print("[Detect] cycle var")
+                    line_split = line.split("=")
+                    var_name = line_split[0]
+                    var_values = line_split[1]
+                    tmp_cycle_key.VarName = var_name
+                    tmp_cycle_key.VarValues = var_values.split(",")
+
+        # manually quit if no more content in ini.
+        if is_in_key_section:
+            print("[End] key section")
+            self.CycleKeyList.append(copy.copy(tmp_cycle_key))
+
+        # show
+        for cycle_key in self.CycleKeyList:
+            cycle_key.show()
+
+    def parse_resource(self):
+        is_in_resource_section = False
+
+        tmp_resource = Resource()
+
+        for line in self.LineList:
+
+            if line.startswith("[") and line.endswith("]") and is_in_resource_section:
+                is_in_resource_section = False
+                print("[End] resource section")
+                self.ResourceList.append(copy.copy(tmp_resource))
+                tmp_resource = Resource()
+
+            if line.startswith("[resource") and not is_in_resource_section:
+                is_in_resource_section = True
+                tmp_resource.Name = line[1:len(line) -1 ]
+                print("[Start] resource section")
+                print("Resource Name: " + tmp_resource.Name)
+
+            if is_in_resource_section:
+                if line.startswith("format="):
+                    tmp_resource.Format = line[7:len(line)]
+                    print("[Detect] format : " + tmp_resource.Format)
+                if line.startswith("stride="):
+                    tmp_resource.Stride = line[7:len(line)]
+                    print("[Detect] stride : " + tmp_resource.Stride)
+                if line.startswith("filename="):
+                    tmp_resource.FileName = line[9:len(line)]
+                    print("[Detect] filename : " + tmp_resource.FileName)
+
+        if is_in_resource_section:
+            self.ResourceList.append(copy.copy(tmp_resource))
+            print("[End] resource section")
+        print_line_break()
+        # for resource in self.ResourceList:
+        #     resource.show()
 
 
-if __name__ == "__main__":
-    merged_ini = MergedInI(r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini")
+def go_fuck_the_mod(file_path):
+    merged_ini = MergedInI(file_path)
     # (1) Parse CommandList to find all resource replace.
     merged_ini.parse_command_list()
-    # (2) Parse TextureOverride and match resource replace
+    # (2) Parse TextureOverride and match resource replace.
     merged_ini.parse_texture_override()
-    # (3) Parse TextureOverride's active resource replace
-    merged_ini.parse_active_resource_replace()
+    # (3) Parse TextureOverride's active resource replace.
+    merged_ini.process_active_resource_replace()
+    # (4) Parse CycleKey.
+    merged_ini.parse_key_variables()
+    # (5) Parse Resource.
+    merged_ini.parse_resource()
 
     # (4) TODO 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
 
@@ -332,6 +436,14 @@ if __name__ == "__main__":
 
     # merged_ini.parse_buffer_files()
     # merged_ini.output_model_files()
+
+
+if __name__ == "__main__":
+    # merged_ini = MergedInI(r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini")
+    target_merged_ini_path = r"C:\Users\Administrator\Desktop\Nahida\merged.ini"
+    go_fuck_the_mod(target_merged_ini_path)
+
+
 
 
 
