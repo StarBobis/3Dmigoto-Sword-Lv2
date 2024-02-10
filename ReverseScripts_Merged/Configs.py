@@ -7,9 +7,25 @@
 # The arguments of the call are passed to __new__() and,
 # in the typical case, to __init__() to initialize the new instance.
 
+# Nico: keep these class as simple as you can, only expand it when you really need it.
+
 
 def print_line_break():
     print("-----------------------------------------------------------------------")
+
+
+def generate_combinations(lists, current_combination, all_combinations):
+    if not lists:
+        all_combinations.append(current_combination)
+        return
+
+    current_list = lists[0]
+    remaining_lists = lists[1:]
+
+    for item in current_list:
+        new_combination = current_combination + [item]
+        generate_combinations(remaining_lists, new_combination, all_combinations)
+
 
 
 class Condition:
@@ -78,10 +94,12 @@ class CycleKey:
 
 class Resource:
     Name = ""
-    Type = ""
     Format = ""
     Stride = ""
     FileName = ""
+
+    # Type can be Container,IB,VB,Texture
+    Type = ""
 
     def __init__(self):
         self.Name = ""

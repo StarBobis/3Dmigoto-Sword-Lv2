@@ -1,10 +1,12 @@
 # Reverse scripts used to parse merged.ini automatically and reverse back every single mod in it to .ib and .vb format.
+import os.path
 
 # Before you start to read the code you should know:
 # everything is open source if you learn reverse engineering and work hard,
 # it's simple but with a lot of annoying data structure.
 # but any complicated or hard thing in the world is combined with the simplest minimum single data structure
-# so there is nothing difficult if you keep learn them one by one, work hard and work smart is the only way to success.
+# so there is nothing difficult if you keep learn them one by one, work hard and work smart is a simple way to success.
+# what stop and limit you is your imagination or fear of possible fact reality instead of lack of power.
 # By: NicoMico.
 
 from ReverseScripts_Merged.Configs import *
@@ -16,9 +18,13 @@ from ReverseScripts_Merged.Configs import *
 # this is very important since we use classes to abstract type.
 import copy
 
+# for generate combination.
+import itertools
+
 
 class MergedInI:
     FilePath = ""
+    FileLocationFolder = ""
     LineList = [""]
 
     # 仅在CommandList中解析出来的ResourceReplace字典
@@ -30,9 +36,13 @@ class MergedInI:
     CycleKeyList = [CycleKey()]
 
     ResourceList = [Resource()]
+    ResourceDict = {}
+
+    VarCombinationDictList = []
 
     def __init__(self, file_path):
         self.FilePath = file_path
+        self.FileLocationFolder = os.path.dirname(self.FilePath)
         self.LineList = []
         with open(self.FilePath, 'r', encoding='utf-8') as file:
             lines = file.readlines()
@@ -417,8 +427,56 @@ class MergedInI:
         #     resource.show()
 
     def process_resources(self):
+        print_line_break()
         # TODO 路径重置、类型设置、加入字典供后续使用
-        pass
+        for resource in self.ResourceList:
+            # 1.set type
+            if resource.FileName == "":
+                # A simple empty resource used to store or recover things.
+                resource.Type = "Container"
+            else:
+
+                if resource.Stride != "":
+                    resource.Type = "VB"
+                else:
+                    if resource.Format != "":
+                        resource.Type = "IB"
+                    else:
+                        resource.Type = "Texture"
+
+            if resource.Type == "":
+                print("[Warning] Unknown Type")
+
+            if resource.FileName.startswith("."):
+                resource.FileName = self.FileLocationFolder + resource.FileName[1:len(resource.FileName)]
+
+            resource.show()
+            # then put it into dict, {name:resource}
+            self.ResourceDict[resource.Name] = copy.copy(resource)
+
+    def process_cycle_key_combination(self):
+        # list all possible combination of variable to make a mod.
+        var_values_list = []
+        var_name_list = []
+        all_combinations = []
+        for cycle_key in self.CycleKeyList:
+            var_values = cycle_key.VarValues
+            var_values_list.append(cycle_key.VarValues)
+            var_name_list.append(cycle_key.VarName)
+
+        all_combinations = list(itertools.product(*var_values_list))
+        # add into dict
+        for combination_list in all_combinations:
+            tmp_var_name_value_dict = {}
+            for i in range(len(combination_list)):
+                var_name = var_name_list[i]
+                var_value = combination_list[i]
+                print("var_name: " + var_name + " var_value: " + var_value)
+                tmp_var_name_value_dict[var_name] = var_value
+            print_line_break()
+            self.VarCombinationDictList.append(copy.copy(tmp_var_name_value_dict))
+
+        # print(self.VarCombinationDictList)
 
 
 def go_fuck_the_mod(file_path):
@@ -435,14 +493,14 @@ def go_fuck_the_mod(file_path):
     merged_ini.parse_resource()
     # (6) Process resource's format and type.
     merged_ini.process_resources()
-
-    # (7) TODO 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
+    # (7) Process every single combination of swap var.
+    merged_ini.process_cycle_key_combination()
     # (8) TODO 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
 
 
 if __name__ == "__main__":
-    # merged_ini = MergedInI(r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini")
-    target_merged_ini_path = r"C:\Users\Administrator\Desktop\Nahida\merged.ini"
+    target_merged_ini_path = r"C:\Users\Administrator\Desktop\SabakuNoYouseiDishia\Script.ini"
+    # target_merged_ini_path = r"C:\Users\Administrator\Desktop\Nahida\merged.ini"
     go_fuck_the_mod(target_merged_ini_path)
 
 
