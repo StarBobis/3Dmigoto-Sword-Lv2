@@ -14,20 +14,6 @@ def print_line_break():
     print("-----------------------------------------------------------------------")
 
 
-def generate_combinations(lists, current_combination, all_combinations):
-    if not lists:
-        all_combinations.append(current_combination)
-        return
-
-    current_list = lists[0]
-    remaining_lists = lists[1:]
-
-    for item in current_list:
-        new_combination = current_combination + [item]
-        generate_combinations(remaining_lists, new_combination, all_combinations)
-
-
-
 class Condition:
     ConditionStr = ""
     ConditionLevel = 0
