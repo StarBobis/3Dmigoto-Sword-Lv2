@@ -416,6 +416,10 @@ class MergedInI:
         # for resource in self.ResourceList:
         #     resource.show()
 
+    def process_resources(self):
+        # TODO 路径重置、类型设置、加入字典供后续使用
+        pass
+
 
 def go_fuck_the_mod(file_path):
     merged_ini = MergedInI(file_path)
@@ -423,19 +427,17 @@ def go_fuck_the_mod(file_path):
     merged_ini.parse_command_list()
     # (2) Parse TextureOverride and match resource replace.
     merged_ini.parse_texture_override()
-    # (3) Parse TextureOverride's active resource replace.
+    # (3) Process TextureOverride's active resource replace.
     merged_ini.process_active_resource_replace()
     # (4) Parse CycleKey.
     merged_ini.parse_key_variables()
     # (5) Parse Resource.
     merged_ini.parse_resource()
+    # (6) Process resource's format and type.
+    merged_ini.process_resources()
 
-    # (4) TODO 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
-
-    # (5) TODO 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
-
-    # merged_ini.parse_buffer_files()
-    # merged_ini.output_model_files()
+    # (7) TODO 解析每隔condition的变量，得出每个变量及所有可能的取值，列出排列组合
+    # (8) TODO 根据排列组合，每个TextureOverride模拟排列组合的对应逻辑赋予对应的resource_replace,对每一种排列组合进行Mod逆向输出
 
 
 if __name__ == "__main__":
