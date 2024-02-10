@@ -9,7 +9,6 @@ from ReverseScripts_Merged.Util import *
 # what stop and limit you is your imagination or fear of possible fact reality instead of lack of power.
 
 
-
 def go_fuck_the_mod(file_path):
     merged_ini = MergedInI(file_path)
     # (1) Parse CommandList to find all resource replace.
