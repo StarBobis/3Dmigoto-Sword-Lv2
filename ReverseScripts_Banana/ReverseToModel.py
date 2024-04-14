@@ -83,16 +83,29 @@ def get_fmt_str_and_stride_from_element_list():
 
 def split_vb_files(fc_tmp_category_offset_dict, fc_tmp_category_maxnum_dict, fc_tmp_vb_file_bytearray, fc_tmp_category_output_name_dict,fc_tmp_stride):
     # 分割VB文件为多个vb文件
-    left_offset_num = 0
 
     for fc_tmp_category in fc_tmp_category_offset_dict:
         print("Processing: " + str(fc_tmp_category))
+
+        # 得到当前类型的最大值
         fc_tmp_category_maxnum = fc_tmp_category_maxnum_dict.get(fc_tmp_category)
+        fc_tmp_category_minnum = fc_tmp_category_offset_dict.get(fc_tmp_category)
+
         vb_file_name = fc_tmp_category_output_name_dict.get(fc_tmp_category)[1]
         print(vb_file_name)
 
-        left_offset = left_offset_num
-        right_offset = left_offset_num + fc_tmp_stride * (fc_tmp_category_maxnum + 1)
+        # 偏移第一次为 从0到步长*最大数量+1
+        # 这里有问题，比如IB里一共只有300个点但是里面最大点的值有1000，这样就导致分配的顶点数量远大于原本的。
+        # 比如出现这种情况：
+        # min count 0   max count 170233
+        # min count 2201   max count 195661
+        # 这时候如果left_offset使用上一次留下的，肯定会有问题。
+        # left_offset = left_offset_num
+        # right_offset = left_offset_num + fc_tmp_stride * (fc_tmp_category_maxnum + 1)
+
+        # 所以我们换成了全新的算法，这样虽然可能存在冗余点，但是能够让模型正常逆向出来
+        left_offset = fc_tmp_stride * fc_tmp_category_minnum
+        right_offset = fc_tmp_stride * (fc_tmp_category_maxnum + 1)
 
         print("Left: " + str(left_offset/fc_tmp_stride) + "  Right: " + str(right_offset/fc_tmp_stride))
         output_vb_bytearray = fc_tmp_vb_file_bytearray[left_offset:right_offset]
@@ -100,8 +113,6 @@ def split_vb_files(fc_tmp_category_offset_dict, fc_tmp_category_maxnum_dict, fc_
         output_vb_file = open(output_folder + vb_file_name, "wb")
         output_vb_file.write(output_vb_bytearray)
         output_vb_file.close()
-
-        left_offset_num = fc_tmp_stride * (fc_tmp_category_maxnum + 1)
 
 
 def get_category_vb_filename_dict(fc_tmp_mod_files):
@@ -197,6 +208,12 @@ def start_reverse():
     # (3) 读取ib文件中，分别最小和最大的数，用于后续转换ib文件时和分割vb文件时提供坐标指示
     category_minnum_dict, category_maxnum_dict = get_category_minnum_maxnum_dict_from_ib_file(ib_file_list)
 
+    print("category_minnum_dict")
+    print(category_minnum_dict)
+    print("category_maxnum_dict")
+    print(category_maxnum_dict)
+    print("----------------------------")
+
     # (4) 获取最终要进行分割处理的vb文件内容
     vb_file_bytearray = get_vb_byte_array(category_vb_filename_dict)
 
@@ -221,8 +238,6 @@ if __name__ == "__main__":
     ib_category_list = preset_config["General"]["ib_category_list"].split(",")
     vb_category_list = preset_config["General"]["vb_category_list"].split(",")
     element_list = preset_config["General"]["element_list"].split(",")
-
-
 
     category_stride_dict = {option: int(value) for option, value in preset_config.items('CategoryStride')}
     print(category_stride_dict)
