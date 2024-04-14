@@ -94,7 +94,6 @@ def get_fmt_str_from_element_list():
 def split_vb_files(fc_tmp_vb_file_bytearray,
                    fc_tmp_category_output_name_dict, fc_tmp_stride):
     # 分割VB文件为多个vb文件
-    left_offset_num = 0
 
     output_filename_outer_list = list(fc_tmp_category_output_name_dict.values())
     print(output_filename_outer_list)
@@ -103,10 +102,11 @@ def split_vb_files(fc_tmp_vb_file_bytearray,
         input_ib_filename = output_filename_list[3]
         output_vb_filename = output_filename_list[1]
         fc_tmp_category_maxnum = ib_filename_maxnum_dict.get(input_ib_filename)
+        fc_tmp_category_minnum = ib_filename_minnum_dict.get(input_ib_filename)
 
         print("Processing: " + output_vb_filename)
-        left_offset = left_offset_num
-        right_offset = left_offset_num + fc_tmp_stride * (fc_tmp_category_maxnum + 1)
+        left_offset = fc_tmp_stride * fc_tmp_category_minnum
+        right_offset = fc_tmp_stride * (fc_tmp_category_maxnum + 1)
 
         print("Left: " + str(left_offset / fc_tmp_stride) + "  Right: " + str(right_offset / fc_tmp_stride))
         output_vb_bytearray = fc_tmp_vb_file_bytearray[left_offset:right_offset]

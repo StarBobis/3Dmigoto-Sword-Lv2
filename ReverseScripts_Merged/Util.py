@@ -15,7 +15,6 @@
 # to fix it we need to manually copy a new one.
 # this is very important since we use classes to abstract type.
 import copy
-
 import os.path
 
 # for generate combination.
